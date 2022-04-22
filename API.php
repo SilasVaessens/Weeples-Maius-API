@@ -36,7 +36,7 @@
   else {
     $data = json_encode($data);
 
-    $url = "http://jsonplaceholder.typicode.com/posts";
+    $url = "https://jsonplaceholder.typicode.com/posts";
 
     $curl = curl_init($url);
     curl_setopt($curl, CURLOPT_URL, $url);
@@ -48,9 +48,15 @@
     curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
 
     $resp = curl_exec($curl);
-    curl_close($curl);
+    $info = curl_getinfo($curl);
 
-    http_response_code(201);
-    echo json_encode(array('message' => 'Activieit op Weeples aangemaakt', 'data' => json_decode($resp)));
-  }//test
+    if ($info['http_code'] > 199 && $info['http_code'] < 300){
+      http_response_code($info['http_code']);
+      echo json_encode(array('message' => 'Activieit op Weeples aangemaakt', 'data' => json_decode($resp)));
+    }
+    else {
+      http_response_code(500);
+      echo json_encode(array('message' => 'Iets ging mis bij Weeples'));
+    }
+    curl_close($curl);
 ?>
