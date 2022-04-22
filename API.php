@@ -59,5 +59,5 @@
       echo json_encode(array('message' => 'Iets ging mis bij Weeples'));
     }
     curl_close($curl);
-  }  
+  }
 ?>
