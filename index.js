@@ -3,35 +3,37 @@ import express, { json } from 'express';
 const app = express();
 const PORT = 8080;
 
+var missingData = [];
+var error = '';
+
 app.use(json());
 
 app.listen(
     PORT,
-    () => console.log(`it's alive on http://localhost:${PORT}`)
-)
+    () => console.log("Weeples-Maius API started")
+);
 
 app.post('/maius', async (req, res) => {
     if (!req.body.description) {
-        res.status(400).send({message: 'Beschrijving van de activiteit vereist voor het aanmaken van een activiteit op Weeples'});
+        missingData.push('beschrijving');
     }
-    else if (!req.body.datetime) {
-        res.status(400).send({message: 'Unix-tijd van wanneer de activiteit plaatsvindt vereist voor het aanmaken van een activiteit op Weeples'});
+    if (!req.body.datetime) {
+        missingData.push('unix-tijd');
     }
-    else if (!req.body.location) {
-        res.status(400).send({message: 'Locatiegegevens bestaande uit een naam en coördinaten of de geohash van de locatie van de activiteit zijn vereist voor het aanmaken van een activiteit op Weeples'});
+    if (!req.body.location) {
+        missingData.push('locatiegegevens (coördinaten of geohash en naam locatie)');
     }
-    else if (!req.body.location.geohash && (!req.body.location.coordinates || !req.body.location.coordinates.latitude || !req.body.location.coordinates.longitude)) {
-        res.status(400).send({message: 'Coördinaten of de geohash van de locatie van de activiteit zijn vereist voor het aanmaken van een activiteit op Weeples'});
+    if (req.body.location && !req.body.location.geohash && (!req.body.location.coordinates || !req.body.location.coordinates.latitude || !req.body.location.coordinates.longitude)) {
+        missingData.push('coördinaten of geohash');
     }
-    else if (!req.body.location.name) {
-        res.status(400).send({message: 'Naam van de locatie van de activiteit vereist voor het aanmaken van een activiteit op Weeples'});
+    if (req.body.location && !req.body.location.name) { 
+        missingData.push('naam locatie');
     }
-    else if (!req.body.name) {
-        res.status(400).send({message: 'Naam van de activiteit vereist voor het aanmaken van een activiteit op Weeples'});
-    }
-    else {
-        console.log(JSON.stringify(req.body, null, 4));
+    if (!req.body.name) {
+        missingData.push('naam activiteit');
 
+    }
+    if (missingData.length == 0){
         const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
             method: 'POST',
             body: JSON.stringify(req.body),
@@ -45,4 +47,27 @@ app.post('/maius', async (req, res) => {
             res.status(500).send({message: `Error ${response.status}: ${response.statusText}`})
         }
     }
-})
+    else if (missingData.length > 0){
+        missingData.forEach((data, index) => {
+            if (index == 0){
+                data = data.charAt(0).toUpperCase() + data.slice(1);
+            }
+            if (index == missingData.length - 2){
+                error = error + data + ' en ';
+            }
+            else {
+                error = error + data + ', ';
+            }
+        });
+        error = error.slice(0, -2);
+        if (missingData.length === 1){
+            error = error + ' is vereist voor het aanmaken van een activiteit op Weeples';
+        }
+        else {
+            error = error + ' zijn vereist voor het aanmaken van een activiteit op Weeples';
+        }
+        res.status(400).send({message: error});
+        error = '';
+        missingData = [];
+    }
+});
